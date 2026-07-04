@@ -127,7 +127,7 @@ The proposed model consists of:
 
 ## Results
 
-- Successfully trained on surveillance image/video data
+- Successfully trained on surveillance video data
 - Real-time activity classification
 - Improved classification performance compared to a baseline CNN model
 - Efficient feature extraction using a hybrid quantum-classical architecture
