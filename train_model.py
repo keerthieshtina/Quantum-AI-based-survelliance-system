@@ -1,5 +1,3 @@
-
-# ---------------- 2) Settings ----------------
 import os, time
 DATASET_ROOT = r"G:\My Drive\dataset1\ucf_anamoly_subset"
 MAX_SAMPLES = 2000
@@ -10,19 +8,16 @@ NUM_EPOCHS = 15
 PRINT_EVERY = 10
 VAL_SPLIT = 0.2
 NUM_QUBITS = 2
-
-# ---------------- 3) Dataset & Augmentation ----------------
 import cv2, numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader, random_split
 from torchvision import transforms
 
 class AddGaussianNoise(object):
-    def __init__(self, mean=0., std=0.4):  # noise for regularization
+    def __init__(self, mean=0., std=0.4): 
         self.mean = mean; self.std = std
     def __call__(self, tensor):
         return tensor + torch.randn(tensor.size()) * self.std + self.mean
-
 transform = transforms.Compose([
     transforms.ToPILImage(),
     transforms.Resize((IMG_SIZE, IMG_SIZE)),
@@ -63,15 +58,12 @@ class FastMediaDataset(Dataset):
             img = cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
         if self.transform: img = self.transform(img)
         return img,label
-
 dataset = FastMediaDataset(media, transform=transform)
 n_total = len(dataset); n_val = int(n_total*VAL_SPLIT); n_train = n_total-n_val
 train_ds,val_ds = random_split(dataset,[n_train,n_val])
 train_loader = DataLoader(train_ds,batch_size=BATCH_SIZE,shuffle=True,num_workers=NUM_WORKERS)
 val_loader   = DataLoader(val_ds,batch_size=BATCH_SIZE,shuffle=False,num_workers=NUM_WORKERS)
 print("Train samples:", n_train,"Validation samples:", n_val)
-
-# ---------------- 4) Hybrid Quantum Model ----------------
 import torch.nn as nn
 from qiskit import QuantumCircuit
 from qiskit.circuit import Parameter
@@ -97,7 +89,6 @@ class QuantumAttention(nn.Module):
         q_in = self.fc_in(x); q_out = self.qnn(q_in)
         out = self.fc_out(q_out)
         return self.norm(x+out)
-
 class HybridQuantumTransformer(nn.Module):
     def __init__(self,n_qubits,n_classes):
         super().__init__()
@@ -120,19 +111,14 @@ class HybridQuantumTransformer(nn.Module):
         x_attn = self.q_attn(x_conv)
         x = self.dropout(x_conv+x_attn)
         return self.classifier(x)
-
 n_classes = max(classes.values())+1
 model = HybridQuantumTransformer(NUM_QUBITS,n_classes)
-
-# ---------------- 5) Training Setup ----------------
 import torch.optim as optim
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 optimizer = optim.Adam(model.parameters(), lr=0.0005, weight_decay=5e-2)  # smaller lr + stronger reg
 criterion = nn.CrossEntropyLoss()
-
 def evaluate(loader):
     model.eval(); all_preds,all_labels,total_loss=[],[],0.0
     with torch.no_grad():
@@ -146,8 +132,6 @@ def evaluate(loader):
     acc = accuracy_score(all_labels,all_preds)
     prec,rec,f1,_ = precision_recall_fscore_support(all_labels,all_preds,average='weighted',zero_division=0)
     return avg_loss, acc, prec, rec, f1
-
-# ---------------- 6) Training Loop ----------------
 if __name__ == "__main__":
     print(f" Training on {n_train} samples...")
     for epoch in range(NUM_EPOCHS):
@@ -160,7 +144,6 @@ if __name__ == "__main__":
             running_loss += loss.item()
             if batch_idx % PRINT_EVERY == 0:
                 print(f"[Epoch {epoch+1} Batch {batch_idx}] Loss: {running_loss/batch_idx:.4f}")
-
         train_loss,train_acc,train_prec,train_rec,train_f1 = evaluate(train_loader)
         val_loss,val_acc,val_prec,val_rec,val_f1 = evaluate(val_loader)
         print(f"Epoch {epoch+1}:")
@@ -168,7 +151,6 @@ if __name__ == "__main__":
         print(f"  Val   → Loss: {val_loss:.4f}, Acc: {val_acc:.2%}, Prec: {val_prec:.2%}, Rec: {val_rec:.2%}, F1: {val_f1:.2%}")
         # ---------------- 7) Save Model ----------------
     torch.save(model.state_dict(), "hybrid_quantum_model.pth")
-
 print(" Model saved successfully!")
 
     
